@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seam — where two tracks meet</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #0f0f1a;
+    --panel2: #13131f;
+    --border: #1e1e35;
+    --neon-a: #00f5ff;
+    --neon-b: #ff2d78;
+    --neon-c: #aaff00;
+    --neon-yellow: #ffe600;
+    --text: #c8c8e0;
+    --text-dim: #4a4a6a;
+    --knob: #1a1a2e;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-display: 'Barlow Condensed', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.015) 39px, rgba(255,255,255,0.015) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.015) 39px, rgba(255,255,255,0.015) 40px);
+  }
+
+  /* HEADER */
+  header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,20,0.95);
+  }
+  .logo {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 3.2rem;
+    letter-spacing: 0.15em;
+    background: linear-gradient(90deg, var(--neon-a), var(--neon-b));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .header-tag {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .bpm-display {
+    font-size: 0.75rem;
+    color: var(--neon-yellow);
+    letter-spacing: 0.1em;
+  }
+
+  /* MAIN LAYOUT */
+  .mixer-layout {
+    display: grid;
+    grid-template-columns: 1fr 260px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 57px);
+  }
+
+  /* DECK */
+  .deck {
+    padding: 18px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .deck-b { border-right: none; border-left: 1px solid var(--border); }
+
+  .deck-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .deck-label {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 2.5rem;
+    line-height: 1;
+    letter-spacing: 0.05em;
+  }
+  .deck-a .deck-label { color: var(--neon-a); text-shadow: 0 0 20px var(--neon-a); }
+  .deck-b .deck-label { color: var(--neon-b); text-shadow: 0 0 20px var(--neon-b); }
+
+  .deck-status {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .deck-status.active { color: var(--neon-c); }
+
+  /* URL Input */
+  .url-row {
+    display: flex;
+    gap: 8px;
+  }
+  .url-input {
+    flex: 1;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .url-input:focus { border-color: var(--text-dim); }
+  .url-input::placeholder { color: var(--text-dim); }
+
+  .btn {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border: 1px solid;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.15s;
+  }
+  .btn-a { color: var(--neon-a); border-color: var(--neon-a); }
+  .btn-a:hover { background: var(--neon-a); color: var(--bg); box-shadow: 0 0 20px var(--neon-a); }
+  .btn-b { color: var(--neon-b); border-color: var(--neon-b); }
+  .btn-b:hover { background: var(--neon-b); color: #fff; box-shadow: 0 0 20px var(--neon-b); }
+  .btn-neutral { color: var(--text-dim); border-color: var(--border); }
+  .btn-neutral:hover { border-color: var(--text); color: var(--text); }
+  .btn-active-a { background: var(--neon-a) !important; color: var(--bg) !important; box-shadow: 0 0 12px var(--neon-a); }
+  .btn-active-b { background: var(--neon-b) !important; color: #fff !important; box-shadow: 0 0 12px var(--neon-b); }
+  .btn-active-green { background: var(--neon-c) !important; color: var(--bg) !important; box-shadow: 0 0 12px var(--neon-c); }
+
+  /* Video */
+  .video-wrapper {
+    position: relative;
+    background: #000;
+    aspect-ratio: 16/9;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .video-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .video-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10,10,20,0.85);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  .video-overlay.hidden { display: none; }
+
+  /* VU METER */
+  .vu-section {
+    display: flex;
+    gap: 6px;
+    height: 80px;
+    align-items: flex-end;
+  }
+  .vu-bar-wrap {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 2px;
+  }
+  .vu-bar {
+    width: 100%;
+    transition: height 0.05s;
+    position: relative;
+  }
+
+  /* Transport controls */
+  .transport {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .transport .btn {
+    flex: 1;
+    min-width: 60px;
+    text-align: center;
+    padding: 10px 8px;
+    font-size: 0.75rem;
+  }
+
+  /* Sliders */
+  .control-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .control-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+  }
+  .control-label span { color: var(--text); }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  .deck-a input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 2px;
+    background: var(--neon-a);
+    box-shadow: 0 0 8px var(--neon-a);
+    cursor: pointer;
+  }
+  .deck-b input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 2px;
+    background: var(--neon-b);
+    box-shadow: 0 0 8px var(--neon-b);
+    cursor: pointer;
+  }
+  .deck-a input[type=range]::-webkit-slider-runnable-track { background: linear-gradient(90deg, var(--neon-a), var(--border)); border-radius: 0; }
+  .deck-b input[type=range]::-webkit-slider-runnable-track { background: linear-gradient(90deg, var(--neon-b), var(--border)); border-radius: 0; }
+
+  /* CUE point display */
+  .cue-display {
+    font-size: 0.65rem;
+    color: var(--neon-yellow);
+    letter-spacing: 0.1em;
+    min-height: 16px;
+  }
+
+  /* CENTER MIXER */
+  .mixer-center {
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .center-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    text-align: center;
+    width: 100%;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+  }
+
+  /* Crossfader */
+  .crossfader-section { width: 100%; }
+  .crossfader-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+  .crossfader-labels .la { color: var(--neon-a); }
+  .crossfader-labels .lb { color: var(--neon-b); }
+  #crossfader {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(90deg, var(--neon-a), #333, var(--neon-b));
+    outline: none;
+    cursor: pointer;
+  }
+  #crossfader::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 28px;
+    border-radius: 2px;
+    background: #fff;
+    box-shadow: 0 0 10px rgba(255,255,255,0.5);
+    cursor: pointer;
+  }
+
+  /* Sync button */
+  .sync-btn {
+    width: 100%;
+    padding: 14px;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 1.1rem;
+    letter-spacing: 0.2em;
+    border: 1px solid var(--neon-yellow);
+    color: var(--neon-yellow);
+    background: transparent;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .sync-btn:hover { background: var(--neon-yellow); color: var(--bg); box-shadow: 0 0 20px var(--neon-yellow); }
+  .sync-btn.synced { background: var(--neon-yellow); color: var(--bg); box-shadow: 0 0 20px var(--neon-yellow); }
+
+  /* Center VU meters */
+  .center-vu {
+    width: 100%;
+    display: flex;
+    gap: 4px;
+    height: 120px;
+    align-items: flex-end;
+  }
+  .center-vu-bar {
+    flex: 1;
+    transition: height 0.05s;
+  }
+
+  /* Master vol */
+  .center-control { width: 100%; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* Scanline overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+    z-index: 9999;
+  }
+
+  .section-divider {
+    width: 100%;
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  /* BPM Section */
+  .bpm-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .bpm-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bpm-readout {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 2rem;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    min-width: 80px;
+  }
+  .deck-a .bpm-readout { color: var(--neon-a); text-shadow: 0 0 14px var(--neon-a); }
+  .deck-b .bpm-readout { color: var(--neon-b); text-shadow: 0 0 14px var(--neon-b); }
+  .bpm-unit {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    align-self: flex-end;
+    padding-bottom: 4px;
+  }
+  .bpm-manual {
+    width: 64px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 5px 8px;
+    outline: none;
+    text-align: center;
+  }
+  .bpm-manual:focus { border-color: var(--text-dim); }
+  .tap-btn {
+    flex: 1;
+    padding: 10px;
+    font-size: 0.75rem;
+    text-align: center;
+    user-select: none;
+  }
+  .tap-flash { background: rgba(255,255,255,0.08) !important; }
+
+  /* Beatmatch button */
+  .beatmatch-btn {
+    width: 100%;
+    padding: 12px;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 1rem;
+    letter-spacing: 0.2em;
+    border: 1px solid var(--neon-b);
+    color: var(--neon-b);
+    background: transparent;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .beatmatch-btn:hover { background: var(--neon-b); color: #fff; box-shadow: 0 0 20px var(--neon-b); }
+  .beatmatch-btn.fired { background: var(--neon-b); color: #fff; box-shadow: 0 0 20px var(--neon-b); }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;">
+    <div class="bpm-display" id="masterClock">▶ READY</div>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;line-height:1.15;">
+    <div class="logo">Seam</div>
+    <div style="font-size:0.7rem;letter-spacing:0.3em;color:var(--text-dim);text-transform:lowercase;margin-top:3px;">where two tracks meet</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;justify-content:flex-end;">
+    <button onclick="toggleCheatsheet()" style="background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:var(--font-mono);font-size:0.65rem;padding:5px 10px;cursor:pointer;letter-spacing:0.1em;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--text)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-dim)'">? KEYS</button>
+  </div>
+</header>
+
+<div class="mixer-layout">
+
+  <!-- DECK A -->
+  <div class="deck deck-a" id="deckA">
+    <div class="deck-header">
+      <div class="deck-label">A</div>
+      <div>
+        <div class="deck-status" id="statusA">STANDBY</div>
+        <div style="font-size:0.6rem;color:var(--text-dim);margin-top:2px;" id="timeA">0:00</div>
+      </div>
+    </div>
+
+    <div class="url-row">
+      <input class="url-input" id="urlA" type="text" placeholder="Paste YouTube URL...">
+      <button class="btn btn-a" onclick="loadDeck('A')">LOAD</button>
+    </div>
+
+    <div class="video-wrapper">
+      <div id="playerA"></div>
+      <div class="video-overlay" id="overlayA">NO SOURCE LOADED</div>
+    </div>
+
+    <!-- VU Meter -->
+    <div class="vu-section" id="vuA"></div>
+
+    <!-- Transport -->
+    <div class="transport">
+      <button class="btn btn-a" id="playA" onclick="togglePlay('A')">▶ PLAY</button>
+      <button class="btn btn-neutral" id="loopA" onclick="toggleLoop('A')">⟳ LOOP</button>
+      <button class="btn btn-neutral" id="cueSetA" onclick="setCue('A')">● SET CUE</button>
+      <button class="btn btn-neutral" id="cueJumpA" onclick="jumpCue('A')">◀ CUE</button>
+    </div>
+
+    <div class="cue-display" id="cueDisplayA">No cue point set</div>
+
+    <div class="control-row">
+      <div class="control-label">Volume <span id="volLabelA">100%</span></div>
+      <input type="range" id="volA" min="0" max="100" value="100" oninput="setVolume('A', this.value)">
+    </div>
+
+    <div class="control-row">
+      <div class="control-label">Speed <span id="speedLabelA">1.00×</span></div>
+      <input type="range" id="speedA" min="50" max="200" value="100" oninput="setSpeed('A', this.value)">
+    </div>
+
+    <div class="bpm-section">
+      <div class="control-label">BPM</div>
+      <div class="bpm-row">
+        <div class="bpm-readout" id="bpmReadA">---</div>
+        <div class="bpm-unit">BPM</div>
+        <input class="bpm-manual" id="bpmManualA" type="number" min="40" max="300" placeholder="---" oninput="manualBpm('A', this.value)">
+      </div>
+      <button class="btn btn-a tap-btn" id="tapA" onclick="tap('A')">♩ TAP TEMPO</button>
+    </div>
+  </div>
+
+  <!-- CENTER MIXER -->
+  <div class="mixer-center">
+    <div class="center-title">Mixer</div>
+
+    <div class="center-vu" id="vuCenter"></div>
+
+    <div class="crossfader-section">
+      <div class="crossfader-labels"><span class="la">A</span><span style="font-size:0.6rem;color:var(--text-dim);align-self:center;">XFADE</span><span class="lb">B</span></div>
+      <input type="range" id="crossfader" min="0" max="100" value="50" oninput="updateCrossfade(this.value)">
+    </div>
+
+    <hr class="section-divider">
+
+    <div class="center-control">
+      <div class="control-label" style="margin-bottom:6px;">Master Vol <span id="masterVolLabel">80%</span></div>
+      <input type="range" id="masterVol" min="0" max="100" value="80" oninput="updateMasterVol(this.value)" style="-webkit-appearance:none;width:100%;height:4px;background:linear-gradient(90deg,var(--neon-c),var(--border));outline:none;cursor:pointer;">
+    </div>
+
+    <hr class="section-divider">
+
+    <button class="sync-btn" id="syncBtn" onclick="syncDecks()">⇄ SYNC</button>
+
+    <hr class="section-divider">
+
+    <div style="font-size:0.6rem;color:var(--text-dim);letter-spacing:0.15em;text-align:center;line-height:1.8;">
+      DECK A<br>
+      <span id="infoSpeedA" style="color:var(--neon-a);">1.00×</span><br><br>
+      DECK B<br>
+      <span id="infoSpeedB" style="color:var(--neon-b);">1.00×</span>
+    </div>
+
+    <hr class="section-divider">
+
+    <div style="font-size:0.6rem;color:var(--text-dim);letter-spacing:0.15em;text-align:center;width:100%;">
+      BEATMATCH
+    </div>
+    <div style="font-size:0.6rem;color:var(--text-dim);letter-spacing:0.1em;text-align:center;line-height:2;">
+      A: <span id="centerBpmA" style="color:var(--neon-a);">--- BPM</span><br>
+      B: <span id="centerBpmB" style="color:var(--neon-b);">--- BPM</span>
+    </div>
+    <button class="beatmatch-btn" id="beatmatchBtn" onclick="beatmatch()">⇄ BEATMATCH B→A</button>
+    <div style="font-size:0.55rem;color:var(--text-dim);letter-spacing:0.1em;text-align:center;line-height:1.6;" id="beatmatchInfo">Set BPM on both decks first</div>
+  </div>
+
+  <!-- DECK B -->
+  <div class="deck deck-b" id="deckB">
+    <div class="deck-header">
+      <div class="deck-label">B</div>
+      <div>
+        <div class="deck-status" id="statusB">STANDBY</div>
+        <div style="font-size:0.6rem;color:var(--text-dim);margin-top:2px;" id="timeB">0:00</div>
+      </div>
+    </div>
+
+    <div class="url-row">
+      <input class="url-input" id="urlB" type="text" placeholder="Paste YouTube URL...">
+      <button class="btn btn-b" onclick="loadDeck('B')">LOAD</button>
+    </div>
+
+    <div class="video-wrapper">
+      <div id="playerB"></div>
+      <div class="video-overlay" id="overlayB">NO SOURCE LOADED</div>
+    </div>
+
+    <div class="vu-section" id="vuB"></div>
+
+    <div class="transport">
+      <button class="btn btn-b" id="playB" onclick="togglePlay('B')">▶ PLAY</button>
+      <button class="btn btn-neutral" id="loopB" onclick="toggleLoop('B')">⟳ LOOP</button>
+      <button class="btn btn-neutral" id="cueSetB" onclick="setCue('B')">● SET CUE</button>
+      <button class="btn btn-neutral" id="cueJumpB" onclick="jumpCue('B')">◀ CUE</button>
+    </div>
+
+    <div class="cue-display" id="cueDisplayB">No cue point set</div>
+
+    <div class="control-row">
+      <div class="control-label">Volume <span id="volLabelB">100%</span></div>
+      <input type="range" id="volB" min="0" max="100" value="100" oninput="setVolume('B', this.value)">
+    </div>
+
+    <div class="control-row">
+      <div class="control-label">Speed <span id="speedLabelB">1.00×</span></div>
+      <input type="range" id="speedB" min="50" max="200" value="100" oninput="setSpeed('B', this.value)">
+    </div>
+
+    <div class="bpm-section">
+      <div class="control-label">BPM</div>
+      <div class="bpm-row">
+        <div class="bpm-readout" id="bpmReadB">---</div>
+        <div class="bpm-unit">BPM</div>
+        <input class="bpm-manual" id="bpmManualB" type="number" min="40" max="300" placeholder="---" oninput="manualBpm('B', this.value)">
+      </div>
+      <button class="btn btn-b tap-btn" id="tapB" onclick="tap('B')">♩ TAP TEMPO</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- YouTube IFrame API -->
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+  // State
+  const state = {
+    A: { player: null, playing: false, loop: false, loopIn: null, loopOut: null, loopActive: false, cue: null, vol: 100, speed: 1.0, loaded: false },
+    B: { player: null, playing: false, loop: false, loopIn: null, loopOut: null, loopActive: false, cue: null, vol: 100, speed: 1.0, loaded: false }
+  };
+  let masterVol = 0.8;
+  let crossfade = 0.5; // 0=full A, 1=full B
+  let vuAnimA, vuAnimB, vuAnimCenter;
+  let timeIntervalA, timeIntervalB;
+  let loopMonitorA, loopMonitorB;
+
+  // Build VU meters
+  function buildVU(id, color, count) {
+    const el = document.getElementById(id);
+    el.innerHTML = '';
+    for (let i = 0; i < count; i++) {
+      const wrap = document.createElement('div');
+      wrap.className = 'vu-bar-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'vu-bar';
+      bar.id = `${id}_bar${i}`;
+      bar.style.height = '4px';
+      bar.style.background = color;
+      bar.style.boxShadow = `0 0 6px ${color}`;
+      wrap.appendChild(bar);
+      el.appendChild(wrap);
+    }
+  }
+
+  function buildCenterVU() {
+    const el = document.getElementById('vuCenter');
+    el.innerHTML = '';
+    for (let i = 0; i < 20; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'center-vu-bar';
+      bar.id = `vuC_bar${i}`;
+      const pct = i / 19;
+      // colour: green → yellow → red
+      const r = Math.round(pct < 0.5 ? pct * 2 * 170 : 170 + (pct - 0.5) * 2 * 85);
+      const g = Math.round(pct < 0.5 ? 255 : 255 - (pct - 0.5) * 2 * 210);
+      const color = `rgb(${r},${g},40)`;
+      bar.style.background = color;
+      bar.style.boxShadow = `0 0 4px ${color}`;
+      bar.style.height = '4px';
+      el.appendChild(bar);
+    }
+  }
+
+  buildVU('vuA', 'var(--neon-a)', 18);
+  buildVU('vuB', 'var(--neon-b)', 18);
+  buildCenterVU();
+
+  // Animate VU
+  function animateVU(deckId, isCenter) {
+    const count = isCenter ? 20 : 18;
+    const prefix = isCenter ? 'vuC_bar' : `vu${deckId}_bar`;
+    const playing = isCenter
+      ? (state.A.playing || state.B.playing)
+      : state[deckId].playing;
+
+    for (let i = 0; i < count; i++) {
+      const bar = document.getElementById(`${prefix}${i}`);
+      if (!bar) continue;
+      if (!playing) {
+        bar.style.height = '3px';
+        continue;
+      }
+      const base = isCenter ? 0.55 : 0.45;
+      const noise = (Math.random() - 0.3) * 0.5;
+      const curve = Math.pow(1 - i / count, 0.6);
+      const h = Math.max(3, Math.min(100, (base + noise) * curve * 100));
+      bar.style.height = h + '%';
+    }
+  }
+
+  function startVULoop(deck) {
+    if (deck === 'A') {
+      clearInterval(vuAnimA);
+      vuAnimA = setInterval(() => animateVU('A', false), 60);
+    } else {
+      clearInterval(vuAnimB);
+      vuAnimB = setInterval(() => animateVU('B', false), 60);
+    }
+    clearInterval(vuAnimCenter);
+    vuAnimCenter = setInterval(() => animateVU(null, true), 60);
+  }
+
+  function stopVULoop(deck) {
+    if (deck === 'A') clearInterval(vuAnimA);
+    else clearInterval(vuAnimB);
+  }
+
+  // YouTube API
+  let ytReady = false;
+  window.onYouTubeIframeAPIReady = function() { ytReady = true; };
+
+  function extractVideoId(url) {
+    const patterns = [
+      /(?:v=|\/embed\/|youtu\.be\/|\/v\/|\/shorts\/)([^&?\s]{11})/,
+      /^([a-zA-Z0-9_-]{11})$/
+    ];
+    for (const p of patterns) {
+      const m = url.match(p);
+      if (m) return m[1];
+    }
+    return null;
+  }
+
+  function loadDeck(deck) {
+    const urlEl = document.getElementById(`url${deck}`);
+    const videoId = extractVideoId(urlEl.value.trim());
+    if (!videoId) { alert('Invalid YouTube URL'); return; }
+
+    const s = state[deck];
+    const containerId = `player${deck}`;
+
+    if (s.player) {
+      s.player.destroy();
+      s.player = null;
+    }
+
+    // Reset
+    s.playing = false;
+    s.cue = null;
+    s.loop = false;
+    s.loopIn = null;
+    s.loopOut = null;
+    s.loopActive = false;
+    s.loaded = false;
+    stopLoopMonitor(deck);
+    const loopBtn = document.getElementById(`loop${deck}`);
+    loopBtn.textContent = '\u27f3 LOOP';
+    loopBtn.style.background = '';
+    loopBtn.style.color = '';
+    loopBtn.style.boxShadow = '';
+    loopBtn.classList.remove('btn-active-green');
+    updatePlayBtn(deck);
+    document.getElementById(`cueDisplay${deck}`).textContent = 'No cue point set';
+    document.getElementById(`overlay${deck}`).classList.add('hidden');
+    document.getElementById(`status${deck}`).textContent = 'LOADING...';
+
+    s.player = new YT.Player(containerId, {
+      videoId: videoId,
+      playerVars: {
+        autoplay: 0,
+        controls: 0,
+        modestbranding: 1,
+        rel: 0,
+        enablejsapi: 1,
+        playsinline: 1
+      },
+      events: {
+        onReady: () => {
+          s.loaded = true;
+          s.player.setVolume(getEffectiveVol(deck));
+          s.player.setPlaybackRate(s.speed);
+          document.getElementById(`overlay${deck}`).classList.add('hidden');
+          document.getElementById(`status${deck}`).textContent = 'READY';
+          document.getElementById(`status${deck}`).classList.add('active');
+          startTimeTracker(deck);
+        },
+        onStateChange: (e) => onPlayerState(deck, e)
+      }
+    });
+  }
+
+  function onPlayerState(deck, e) {
+    const s = state[deck];
+    if (e.data === YT.PlayerState.PLAYING) {
+      s.playing = true;
+      updatePlayBtn(deck);
+      document.getElementById(`status${deck}`).textContent = 'PLAYING';
+      startVULoop(deck);
+    } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) {
+      if (e.data === YT.PlayerState.ENDED && s.loopActive) {
+        s.player.seekTo(s.loopIn, true);
+        s.player.playVideo();
+        return;
+      }
+      s.playing = false;
+      updatePlayBtn(deck);
+      document.getElementById(`status${deck}`).textContent = e.data === YT.PlayerState.ENDED ? 'ENDED' : 'PAUSED';
+      stopVULoop(deck);
+      animateVU(deck, false);
+    }
+  }
+
+  function togglePlay(deck) {
+    const s = state[deck];
+    if (!s.player || !s.loaded) return;
+    if (s.playing) {
+      s.player.pauseVideo();
+    } else {
+      s.player.playVideo();
+    }
+  }
+
+  function updatePlayBtn(deck) {
+    const s = state[deck];
+    const btn = document.getElementById(`play${deck}`);
+    if (s.playing) {
+      btn.textContent = '‖ PAUSE';
+      btn.classList.add(deck === 'A' ? 'btn-active-a' : 'btn-active-b');
+    } else {
+      btn.textContent = '▶ PLAY';
+      btn.classList.remove('btn-active-a', 'btn-active-b');
+    }
+  }
+
+  function toggleLoop(deck) {
+    const s = state[deck];
+    const btn = document.getElementById(`loop${deck}`);
+    const display = document.getElementById(`cueDisplay${deck}`);
+
+    if (!s.player || !s.loaded) return;
+
+    if (s.loopIn === null) {
+      // First press: set loop IN
+      s.loopIn = s.player.getCurrentTime();
+      s.loopOut = null;
+      s.loopActive = false;
+      btn.textContent = '⟳ SET OUT';
+      btn.classList.remove('btn-active-green');
+      btn.style.background = 'var(--neon-yellow)';
+      btn.style.color = 'var(--bg)';
+      btn.style.boxShadow = '0 0 12px var(--neon-yellow)';
+      const mins = Math.floor(s.loopIn / 60);
+      const secs = Math.floor(s.loopIn % 60).toString().padStart(2,'0');
+      display.textContent = `LOOP IN: ${mins}:${secs} — press again to set OUT`;
+    } else if (s.loopOut === null) {
+      // Second press: set loop OUT and activate
+      const outTime = s.player.getCurrentTime();
+      if (outTime <= s.loopIn) {
+        display.textContent = `\u26a0 OUT must be after IN`;
+        return;
+      }
+      s.loopOut = outTime;
+      s.loopActive = true;
+      btn.textContent = '⟳ LOOP ON';
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.style.boxShadow = '';
+      btn.classList.add('btn-active-green');
+      const inM = Math.floor(s.loopIn/60), inS = Math.floor(s.loopIn%60).toString().padStart(2,'0');
+      const outM = Math.floor(s.loopOut/60), outS = Math.floor(s.loopOut%60).toString().padStart(2,'0');
+      display.textContent = `LOOP: ${inM}:${inS} \u2192 ${outM}:${outS} (press to clear)`;
+      startLoopMonitor(deck);
+    } else {
+      // Third press: clear loop
+      s.loopIn = null;
+      s.loopOut = null;
+      s.loopActive = false;
+      stopLoopMonitor(deck);
+      btn.textContent = '\u27f3 LOOP';
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.style.boxShadow = '';
+      btn.classList.remove('btn-active-green');
+      display.textContent = s.cue !== null
+        ? `CUE: ${Math.floor(s.cue/60)}:${Math.floor(s.cue%60).toString().padStart(2,'0')}`
+        : 'No cue point set';
+    }
+  }
+
+  function startLoopMonitor(deck) {
+    stopLoopMonitor(deck);
+    const id = setInterval(() => {
+      const s = state[deck];
+      if (!s.loopActive || !s.player || !s.loaded) return;
+      try {
+        const t = s.player.getCurrentTime();
+        if (t >= s.loopOut) {
+          s.player.seekTo(s.loopIn, true);
+        }
+      } catch(e) {}
+    }, 50);
+    if (deck === 'A') loopMonitorA = id;
+    else loopMonitorB = id;
+  }
+
+  function stopLoopMonitor(deck) {
+    if (deck === 'A') { clearInterval(loopMonitorA); loopMonitorA = null; }
+    else { clearInterval(loopMonitorB); loopMonitorB = null; }
+  }
+
+  function setCue(deck) {
+    const s = state[deck];
+    if (!s.player || !s.loaded) return;
+    s.cue = s.player.getCurrentTime();
+    const mins = Math.floor(s.cue / 60);
+    const secs = Math.floor(s.cue % 60).toString().padStart(2, '0');
+    document.getElementById(`cueDisplay${deck}`).textContent = `CUE: ${mins}:${secs}`;
+    const btn = document.getElementById(`cueSet${deck}`);
+    btn.classList.add('btn-active-green');
+    setTimeout(() => btn.classList.remove('btn-active-green'), 300);
+  }
+
+  function jumpCue(deck) {
+    const s = state[deck];
+    if (!s.player || !s.loaded || s.cue === null) return;
+    s.player.seekTo(s.cue, true);
+    const btn = document.getElementById(`cueJump${deck}`);
+    btn.classList.add('btn-active-green');
+    setTimeout(() => btn.classList.remove('btn-active-green'), 300);
+  }
+
+  function getEffectiveVol(deck) {
+    const s = state[deck];
+    let cf = deck === 'A' ? (1 - crossfade) : crossfade;
+    // Equal power crossfade
+    cf = Math.sin(cf * Math.PI / 2);
+    return Math.round(s.vol * cf * masterVol);
+  }
+
+  function setVolume(deck, val) {
+    state[deck].vol = parseInt(val);
+    document.getElementById(`volLabel${deck}`).textContent = val + '%';
+    applyVolumes();
+  }
+
+  function applyVolumes() {
+    ['A', 'B'].forEach(d => {
+      const s = state[d];
+      if (s.player && s.loaded) {
+        s.player.setVolume(getEffectiveVol(d));
+      }
+    });
+  }
+
+  function updateCrossfade(val) {
+    crossfade = val / 100;
+    applyVolumes();
+  }
+
+  function updateMasterVol(val) {
+    masterVol = val / 100;
+    document.getElementById('masterVolLabel').textContent = val + '%';
+    applyVolumes();
+  }
+
+  function setSpeed(deck, val) {
+    const rate = val / 100;
+    state[deck].speed = rate;
+    const label = rate.toFixed(2) + '×';
+    document.getElementById(`speedLabel${deck}`).textContent = label;
+    document.getElementById(`infoSpeed${deck}`).textContent = label;
+    if (state[deck].player && state[deck].loaded) {
+      state[deck].player.setPlaybackRate(rate);
+    }
+  }
+
+  function syncDecks() {
+    const btn = document.getElementById('syncBtn');
+    // Match B's speed to A's speed
+    const speedA = state.A.speed;
+    state.B.speed = speedA;
+    const sliderB = document.getElementById('speedB');
+    sliderB.value = Math.round(speedA * 100);
+    const label = speedA.toFixed(2) + '×';
+    document.getElementById('speedLabelB').textContent = label;
+    document.getElementById('infoSpeedB').textContent = label;
+    if (state.B.player && state.B.loaded) {
+      state.B.player.setPlaybackRate(speedA);
+    }
+    btn.classList.add('synced');
+    setTimeout(() => btn.classList.remove('synced'), 800);
+  }
+
+  function startTimeTracker(deck) {
+    const interval = deck === 'A' ? timeIntervalA : timeIntervalB;
+    clearInterval(interval);
+    const id = setInterval(() => {
+      const s = state[deck];
+      if (s.player && s.loaded) {
+        try {
+          const t = s.player.getCurrentTime() || 0;
+          const mins = Math.floor(t / 60);
+          const secs = Math.floor(t % 60).toString().padStart(2, '0');
+          document.getElementById(`time${deck}`).textContent = `${mins}:${secs}`;
+        } catch(e) {}
+      }
+    }, 500);
+    if (deck === 'A') timeIntervalA = id;
+    else timeIntervalB = id;
+  }
+
+  // Master clock display
+  setInterval(() => {
+    const now = new Date();
+    const h = now.getHours().toString().padStart(2,'0');
+    const m = now.getMinutes().toString().padStart(2,'0');
+    const s = now.getSeconds().toString().padStart(2,'0');
+    document.getElementById('masterClock').textContent = `${h}:${m}:${s}`;
+  }, 1000);
+
+  // Master vol slider styling
+  const mvSlider = document.getElementById('masterVol');
+  mvSlider.style.cssText += '-webkit-appearance:none;width:100%;height:4px;background:linear-gradient(90deg,var(--neon-c),var(--border));outline:none;cursor:pointer;';
+
+  // BPM state
+  const bpmState = {
+    A: { taps: [], bpm: null },
+    B: { taps: [], bpm: null }
+  };
+  const TAP_TIMEOUT = 2500; // reset taps after 2.5s gap
+
+  function tap(deck) {
+    const bs = bpmState[deck];
+    const now = performance.now();
+
+    // Clear old taps if too long since last tap
+    if (bs.taps.length > 0 && now - bs.taps[bs.taps.length - 1] > TAP_TIMEOUT) {
+      bs.taps = [];
+    }
+
+    bs.taps.push(now);
+
+    // Need at least 2 taps
+    if (bs.taps.length < 2) {
+      document.getElementById(`bpmRead${deck}`).textContent = '...';
+      return;
+    }
+
+    // Keep last 8 taps
+    if (bs.taps.length > 8) bs.taps.shift();
+
+    // Average interval between taps
+    let total = 0;
+    for (let i = 1; i < bs.taps.length; i++) {
+      total += bs.taps[i] - bs.taps[i - 1];
+    }
+    const avgInterval = total / (bs.taps.length - 1);
+    const bpm = Math.round(60000 / avgInterval);
+
+    setBpm(deck, bpm);
+
+    // Flash tap button
+    const btn = document.getElementById(`tap${deck}`);
+    btn.classList.add('tap-flash');
+    setTimeout(() => btn.classList.remove('tap-flash'), 100);
+  }
+
+  function manualBpm(deck, val) {
+    const bpm = parseFloat(val);
+    if (bpm >= 40 && bpm <= 300) {
+      setBpm(deck, bpm);
+    }
+  }
+
+  function setBpm(deck, bpm) {
+    bpmState[deck].bpm = bpm;
+    const display = Math.round(bpm * 10) / 10;
+    document.getElementById(`bpmRead${deck}`).textContent = display;
+    document.getElementById(`centerBpm${deck}`).textContent = display + ' BPM';
+    // Sync manual input if set via tap
+    const manualEl = document.getElementById(`bpmManual${deck}`);
+    if (document.activeElement !== manualEl) {
+      manualEl.value = Math.round(bpm);
+    }
+    updateBeatmatchInfo();
+  }
+
+  function updateBeatmatchInfo() {
+    const bpmA = bpmState.A.bpm;
+    const bpmB = bpmState.B.bpm;
+    const infoEl = document.getElementById('beatmatchInfo');
+    if (!bpmA || !bpmB) {
+      infoEl.textContent = 'Set BPM on both decks first';
+      return;
+    }
+    const ratio = bpmA / bpmB;
+    const newSpeed = Math.round(state.B.speed * ratio * 100) / 100;
+    infoEl.textContent = `B speed: ${state.B.speed.toFixed(2)}× → ${newSpeed.toFixed(2)}×`;
+  }
+
+  function beatmatch() {
+    const bpmA = bpmState.A.bpm;
+    const bpmB = bpmState.B.bpm;
+    if (!bpmA || !bpmB) {
+      document.getElementById('beatmatchInfo').textContent = '⚠ Set BPM on both decks first';
+      return;
+    }
+
+    // Target: adjust B's playback speed so its BPM matches A
+    // newSpeedB = currentSpeedB * (bpmA / bpmB)
+    const ratio = bpmA / bpmB;
+    const newSpeed = state.B.speed * ratio;
+    const clamped = Math.max(0.5, Math.min(2.0, newSpeed));
+
+    state.B.speed = clamped;
+    const sliderVal = Math.round(clamped * 100);
+    document.getElementById('speedB').value = sliderVal;
+    const label = clamped.toFixed(2) + '×';
+    document.getElementById('speedLabelB').textContent = label;
+    document.getElementById('infoSpeedB').textContent = label;
+    if (state.B.player && state.B.loaded) {
+      state.B.player.setPlaybackRate(clamped);
+    }
+
+    // Update B's effective BPM display
+    const newBpmB = bpmB * (clamped / state.B.speed || 1);
+    // Recalculate: newBpmB = bpmB * ratio (before clamp) — just show bpmA as target
+    setBpm('B', Math.round(bpmA * 10) / 10);
+
+    const btn = document.getElementById('beatmatchBtn');
+    btn.classList.add('fired');
+    document.getElementById('beatmatchInfo').textContent = `✓ B matched to ${Math.round(bpmA)} BPM`;
+    setTimeout(() => btn.classList.remove('fired'), 800);
+  }
+
+  // ── KEYBOARD BINDINGS ──────────────────────────────────────────
+  const SPEED_NUDGE = 5; // slider units per nudge
+  const XFADE_STEP = 10; // crossfader units per nudge
+
+  function nudgeSpeed(deck, dir) {
+    const slider = document.getElementById(`speed${deck}`);
+    const newVal = Math.max(50, Math.min(200, parseInt(slider.value) + dir * SPEED_NUDGE));
+    slider.value = newVal;
+    setSpeed(deck, newVal);
+  }
+
+  function nudgeCrossfade(dir) {
+    const slider = document.getElementById('crossfader');
+    const newVal = Math.max(0, Math.min(100, parseInt(slider.value) + dir * XFADE_STEP));
+    slider.value = newVal;
+    updateCrossfade(newVal);
+  }
+
+  function hardCrossfade(val) {
+    const slider = document.getElementById('crossfader');
+    slider.value = val;
+    updateCrossfade(val);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    // Don't fire when typing in an input
+    if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+    switch (e.key.toLowerCase()) {
+      // Deck A
+      case 'a': togglePlay('A'); break;
+      case 's': toggleLoop('A'); break;
+      case 'd': setCue('A'); break;
+      case 'f': jumpCue('A'); break;
+      case 'w': nudgeSpeed('A', -1); break;
+      case 'e': nudgeSpeed('A', +1); break;
+      case 't': tap('A'); break;
+
+      // Deck B
+      case 'j': togglePlay('B'); break;
+      case 'k': toggleLoop('B'); break;
+      case 'l': setCue('B'); break;
+      case ';': jumpCue('B'); break;
+      case 'i': nudgeSpeed('B', -1); break;
+      case 'o': nudgeSpeed('B', +1); break;
+      case 'y': tap('B'); break;
+
+      // Centre
+      case 'b': beatmatch(); break;
+      case 'n': syncDecks(); break;
+      case 'x': nudgeCrossfade(-1); break;
+      case 'v': nudgeCrossfade(+1); break;
+      case 'c': hardCrossfade(50); break;
+      case 'g': hardCrossfade(0); break;
+      case 'h': hardCrossfade(100); break;
+
+      // Cheatsheet
+      case '?': toggleCheatsheet(); break;
+    }
+  });
+
+  // ── CHEATSHEET OVERLAY ─────────────────────────────────────────
+  function toggleCheatsheet() {
+    const el = document.getElementById('cheatsheet');
+    el.classList.toggle('visible');
+  }
+</script>
+
+<!-- CHEATSHEET OVERLAY -->
+<div id="cheatsheet">
+  <div class="cs-panel">
+    <div class="cs-header">
+      <span class="cs-title">SEAM — KEYBOARD SHORTCUTS</span>
+      <button class="cs-close" onclick="toggleCheatsheet()">✕</button>
+    </div>
+    <div class="cs-body">
+      <div class="cs-col">
+        <div class="cs-deck-label" style="color:var(--neon-a)">DECK A</div>
+        <div class="cs-row"><kbd>A</kbd><span>Play / Pause</span></div>
+        <div class="cs-row"><kbd>S</kbd><span>Loop In → Out → Clear</span></div>
+        <div class="cs-row"><kbd>D</kbd><span>Set cue point</span></div>
+        <div class="cs-row"><kbd>F</kbd><span>Jump to cue</span></div>
+        <div class="cs-row"><kbd>W</kbd><span>Speed −</span></div>
+        <div class="cs-row"><kbd>E</kbd><span>Speed +</span></div>
+        <div class="cs-row"><kbd>T</kbd><span>Tap tempo</span></div>
+      </div>
+      <div class="cs-col cs-col-center">
+        <div class="cs-deck-label" style="color:var(--neon-yellow)">CENTRE</div>
+        <div class="cs-row"><kbd>G</kbd><span>Crossfade → A</span></div>
+        <div class="cs-row"><kbd>H</kbd><span>Crossfade → B</span></div>
+        <div class="cs-row"><kbd>X</kbd><span>Fade left</span></div>
+        <div class="cs-row"><kbd>V</kbd><span>Fade right</span></div>
+        <div class="cs-row"><kbd>C</kbd><span>Centre fade</span></div>
+        <div class="cs-row"><kbd>N</kbd><span>Sync speeds</span></div>
+        <div class="cs-row"><kbd>B</kbd><span>Beatmatch</span></div>
+        <div class="cs-row"><kbd>?</kbd><span>This screen</span></div>
+      </div>
+      <div class="cs-col">
+        <div class="cs-deck-label" style="color:var(--neon-b)">DECK B</div>
+        <div class="cs-row"><kbd>J</kbd><span>Play / Pause</span></div>
+        <div class="cs-row"><kbd>K</kbd><span>Loop In → Out → Clear</span></div>
+        <div class="cs-row"><kbd>L</kbd><span>Set cue point</span></div>
+        <div class="cs-row"><kbd>;</kbd><span>Jump to cue</span></div>
+        <div class="cs-row"><kbd>I</kbd><span>Speed −</span></div>
+        <div class="cs-row"><kbd>O</kbd><span>Speed +</span></div>
+        <div class="cs-row"><kbd>Y</kbd><span>Tap tempo</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  #cheatsheet {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+  }
+  #cheatsheet.visible { display: flex; }
+
+  .cs-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    width: min(860px, 95vw);
+    box-shadow: 0 0 60px rgba(0,0,0,0.8);
+  }
+  .cs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cs-title {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 1rem;
+    letter-spacing: 0.3em;
+    color: var(--text);
+  }
+  .cs-close {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 4px 10px;
+    transition: all 0.15s;
+  }
+  .cs-close:hover { border-color: var(--text); color: var(--text); }
+  .cs-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    padding: 24px 20px;
+  }
+  .cs-col { display: flex; flex-direction: column; gap: 8px; }
+  .cs-col-center { border-left: 1px solid var(--border); border-right: 1px solid var(--border); padding: 0 20px; }
+  .cs-col:first-child { padding-right: 20px; }
+  .cs-col:last-child { padding-left: 20px; }
+  .cs-deck-label {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    margin-bottom: 6px;
+  }
+  .cs-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+  }
+  kbd {
+    display: inline-block;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    min-width: 28px;
+    text-align: center;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.5);
+  }
+  .cs-hint {
+    text-align: center;
+    padding: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+  }
+</style>
+
+</body>
+</html>
